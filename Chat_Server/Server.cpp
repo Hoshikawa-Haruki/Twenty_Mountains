@@ -22,12 +22,14 @@ void showSetting() { // 미구현
     cout << "Server IP 주소 : " << servIP << endl;
 }
 void servBroadcast() {
+    string serverCheck_msg = "서버 : ";
     while (!isGameOver) {
         memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
-        cout << "입력 : ";
         fgets(buffer, sizeof(buffer), stdin);
-        send(ClntSocket1, buffer, strlen(buffer) - 1, 0);
-        send(ClntSocket2, buffer, strlen(buffer) - 1, 0);
+        serverCheck_msg += buffer;
+        send(ClntSocket1, serverCheck_msg.c_str(), serverCheck_msg.size()-1, 0);
+        send(ClntSocket2, serverCheck_msg.c_str(), serverCheck_msg.size()-1, 0);
+        serverCheck_msg = "서버 : ";
     }
 }
 
@@ -48,12 +50,7 @@ void thr_recv(SOCKET clntSocket) {
         settime();
         cout << endl;
         if (strlen(buffer) > 0) {
-            cout.width(10);
-            cout << clntInfo << " : ";
-            cout.width(40);
-            cout << buffer;
-            cout.width(5);
-            cout << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":" << timeinfo.tm_sec << endl << "입력 : ";
+            cout << clntInfo << " : " << "\t" << buffer << "\t\t" << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":" << timeinfo.tm_sec << endl;
         }
 
         if (clntMessage == "stop") {
@@ -62,11 +59,12 @@ void thr_recv(SOCKET clntSocket) {
             break; //클라이언트에서 보낸 message가 "stop"일경우 데이터받아오기 종료
         }
 
-        if (clntSocket == ClntSocket1) {
-            send(ClntSocket2, buffer, strlen(buffer), 0);
+        if (clntSocket == ClntSocket1) { // 1번 클라가 입력시
+            send(ClntSocket2, buffer, strlen(buffer), 0); // 2번 클라로 전송
             if (!strcmp(buffer, answer)) {
                 string gameOver = "1번 클라이언트 정답";
                 cout << gameOver << endl;
+                send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
                 send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
                 isGameOver = true;
 
@@ -79,6 +77,7 @@ void thr_recv(SOCKET clntSocket) {
                 string gameOver = "2번 클라이언트 정답";;
                 cout << gameOver << endl;
                 send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
+                send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
                 isGameOver = true;
                 break;
             }

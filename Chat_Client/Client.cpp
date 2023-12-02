@@ -24,7 +24,7 @@ void thr_recv() {
 		struct tm timeinfo; // 구조체
 		current_time = time(NULL); // unix 시간
 		localtime_s(&timeinfo, &current_time);
-		cout << "Server : " << message << "\t\t" << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":";
+		cout << message << "\t\t" << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":";
 		if (timeinfo.tm_sec < 10) {
 			cout << "0" << timeinfo.tm_sec << endl;
 		}
@@ -55,9 +55,14 @@ int main() {
 	thread clntThread(thr_recv);
 	char clntMessage[PACKET_SIZE] = { 0 }; // 정적할당 char배열 초기화
 
+	string clientCheck_msg = "클라이언트1 : ";
+
 	while (!WSAGetLastError()) {
 		fgets(clntMessage, sizeof(clntMessage), stdin);
-		send(hSocket, clntMessage, strlen(clntMessage) - 1, 0); // send
+		clientCheck_msg += clntMessage;
+		send(hSocket, clientCheck_msg.c_str(), clientCheck_msg.size() - 1, 0); // send
+		memset(&clntMessage, 0, sizeof(clntMessage)); // 메세지 배열 초기화
+		clientCheck_msg = "클라이언트1:";
 	}
 	clntThread.join();
 
