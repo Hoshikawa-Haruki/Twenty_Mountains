@@ -56,7 +56,6 @@ int main() {
 	char clntMessage[PACKET_SIZE] = { 0 }; // 정적할당 char배열 초기화
 
 	while (!WSAGetLastError()) {
-		cout << "입력 : ";
 		fgets(clntMessage, sizeof(clntMessage), stdin);
 		send(hSocket, clntMessage, strlen(clntMessage) - 1, 0); // send
 	}

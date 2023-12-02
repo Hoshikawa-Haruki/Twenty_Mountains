@@ -14,23 +14,21 @@ time_t current_time;
 struct tm timeinfo;
 map<SOCKET, string> clntInfoMap; // 각 클라이언트의 정보를 소켓과 매핑. 키-값 쌍을 저장하는 배열, 동적으로 할당, 각 키는 중복되지 않음
 char buffer[PACKET_SIZE] = {};
+char answer[PACKET_SIZE] = {};
+bool isGameOver = false;
 
 void showSetting() { // 미구현
     string servIP = "localhost";
     cout << "Server IP 주소 : " << servIP << endl;
 }
 void servBroadcast() {
-    while (TRUE) {
+    while (!isGameOver) {
         memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
+        cout << "입력 : ";
         fgets(buffer, sizeof(buffer), stdin);
         send(ClntSocket1, buffer, strlen(buffer) - 1, 0);
         send(ClntSocket2, buffer, strlen(buffer) - 1, 0);
     }
-}
-
-void makeserthread() {
-    thread servThread(servBroadcast);
-    servThread.detach();
 }
 
 void settime() {
@@ -42,33 +40,50 @@ void thr_recv(SOCKET clntSocket) {
     string clntMessage;
     string clntInfo;
     memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
-
-    cout << "check " << buffer << endl;
-    while (true) {
+    while (!isGameOver) {
         memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
         recv(clntSocket, buffer, PACKET_SIZE, 0);
         clntMessage = buffer;
         clntInfo = clntInfoMap[clntSocket];
         settime();
-
+        cout << endl;
         if (strlen(buffer) > 0) {
             cout.width(10);
             cout << clntInfo << " : ";
             cout.width(40);
             cout << buffer;
             cout.width(5);
-            cout << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":" << timeinfo.tm_sec << endl;
-            //memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
-
+            cout << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":" << timeinfo.tm_sec << endl << "입력 : ";
         }
 
         if (clntMessage == "stop") {
             cout << clntInfo << " 가 연결을 종료하였습니다." << endl;
+            isGameOver = true;
             break; //클라이언트에서 보낸 message가 "stop"일경우 데이터받아오기 종료
         }
 
+        if (clntSocket == ClntSocket1) {
+            send(ClntSocket2, buffer, strlen(buffer), 0);
+            if (!strcmp(buffer, answer)) {
+                string gameOver = "1번 클라이언트 정답";
+                cout << gameOver << endl;
+                send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
+                isGameOver = true;
+
+                break;
+            }
+        }
+        else {
+            send(ClntSocket1, buffer, strlen(buffer), 0);
+            if (!strcmp(buffer, answer)) {
+                string gameOver = "2번 클라이언트 정답";;
+                cout << gameOver << endl;
+                send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
+                isGameOver = true;
+                break;
+            }
+        }
     }
-    closesocket(clntSocket);
 }
 
 void buildServ() {
@@ -94,7 +109,6 @@ void buildServ() {
     int clnt_addrsize = sizeof(clntaddr);
 
     ClntSocket1 = accept(ServSock, (SOCKADDR*)&clntaddr, &clnt_addrsize); // 첫 번째 클라이언트 연결을 수락
-    thread clntThread1(thr_recv, ClntSocket1); // 첫 번째 클라이언트에 대한 스레드 생성
     string clntInfo1 = "Client_1 (" + string(inet_ntoa(clntaddr.sin_addr)) + ":" + to_string(ntohs(clntaddr.sin_port)) + ")";
     clntInfoMap[ClntSocket1] = clntInfo1; // ip주소와 포트번호를 기반으로한 클라이언트1 식별자를 할당
     if (ClntSocket1 != INVALID_SOCKET) {
@@ -102,12 +116,24 @@ void buildServ() {
     }
 
     ClntSocket2 = accept(ServSock, (SOCKADDR*)&clntaddr, &clnt_addrsize); // 두 번째 클라이언트 연결을 수락
-    thread clntThread2(thr_recv, ClntSocket2); // 두 번째 클라이언트에 대한 스레드 생성
     string clntInfo2 = "Client_2 (" + string(inet_ntoa(clntaddr.sin_addr)) + ":" + to_string(ntohs(clntaddr.sin_port)) + ")";
     clntInfoMap[ClntSocket2] = clntInfo2; // ip주소와 포트번호를 기반으로한 클라이언트2 식별자를 할당
     if (ClntSocket2 != INVALID_SOCKET) {
         cout << clntInfo2 << " 가 접속했습니다." << endl;
     }
+    
+    cout << "정답을 입력해 주세요 : ";
+    cin >> answer;
+
+    char startMessage[] = "게임을 시작합니다.";
+    send(ClntSocket1, startMessage, strlen(startMessage) - 1, 0);
+    send(ClntSocket2, startMessage, strlen(startMessage) - 1, 0);
+    
+    thread servThread(servBroadcast);
+    thread clntThread1(thr_recv, ClntSocket1); // 첫 번째 클라이언트에 대한 스레드 생성
+    thread clntThread2(thr_recv, ClntSocket2); // 두 번째 클라이언트에 대한 스레드 생성
+    
+    servThread.join();
     clntThread1.join(); // 스레드가 종료될 때까지 대기
     clntThread2.join();
 
@@ -120,7 +146,6 @@ void buildServ() {
 }
 
 int main() {
-    makeserthread(); // 브로드캐스트
     buildServ(); // 리시브 하는 스레드 생성
     return 0;
 }
