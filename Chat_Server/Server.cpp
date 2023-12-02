@@ -16,11 +16,14 @@ map<SOCKET, string> clntInfoMap; // 각 클라이언트의 정보를 소켓과 매핑. 키-값 쌍
 char buffer[PACKET_SIZE] = {};
 char answer[PACKET_SIZE] = {};
 bool isGameOver = false;
+string serverAnswer;
+string clntMessage;
+string clntInfo;
+string tag1 = "클라이언트1 : ";
+string tag2 = "클라이언트2 : ";
+string gameOver;
+int answerCount = 5;
 
-void showSetting() { // 미구현
-    string servIP = "localhost";
-    cout << "Server IP 주소 : " << servIP << endl;
-}
 void servBroadcast() {
     string serverCheck_msg = "서버 : ";
     while (!isGameOver) {
@@ -32,37 +35,33 @@ void servBroadcast() {
         serverCheck_msg = "서버 : ";
     }
 }
-void checkAnswer() {
-    string message = buffer; // 예시로 받은 문자열을 설정
-   
 
-    
-}
 void settime() {
     current_time = time(NULL); // unix 시간
     localtime_s(&timeinfo, &current_time);
 }
 
 void thr_recv(SOCKET clntSocket) {
-    string serverAnswer;
-    string clntMessage;
-    string clntInfo;
-    string tag1 = "클라이언트1 : ";
-    string tag2 = "클라이언트2 : ";
-
     memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
-    while (!isGameOver) {
+    while (!isGameOver && answerCount > 0) {
         memset(buffer, 0, sizeof(buffer)); // 버퍼 비우기
         recv(clntSocket, buffer, PACKET_SIZE, 0);
         serverAnswer = answer;
         clntMessage = buffer;
         clntInfo = clntInfoMap[clntSocket];
         settime();
-        cout << endl;
         if (strlen(buffer) > 0) {
+            answerCount--;
             cout << buffer;
             cout.width(20);
             cout << timeinfo.tm_hour << ":" << timeinfo.tm_min << ":" << timeinfo.tm_sec << endl;
+            cout << "남은횟수 : " << answerCount << endl;
+            if (answerCount == 0) {
+                gameOver = "게임에서 패배하셨습니다.서버의 승리입니다 !";
+                cout << gameOver << endl;
+                send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
+                send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
+            }
         }
 
         if (clntMessage.find(tag1) == 0) { // 클라이언트들의 메세지 중, 실제 메세지만 추출
@@ -75,7 +74,7 @@ void thr_recv(SOCKET clntSocket) {
         if (clntSocket == ClntSocket1) { // 1번 클라가 입력시
             send(ClntSocket2, buffer, strlen(buffer), 0); // 2번 클라로 전송
             if (serverAnswer == clntMessage) {
-                string gameOver = "1번 클라이언트 정답";
+                gameOver = "1번 클라이언트 정답";
                 cout << gameOver << endl;
                 send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
                 send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
@@ -83,10 +82,10 @@ void thr_recv(SOCKET clntSocket) {
                 break;
             }
         }
-        else {
-            send(ClntSocket1, buffer, strlen(buffer), 0);
+        else { // 2번클라가 입력 시
+            send(ClntSocket1, buffer, strlen(buffer), 0);  // 1번 클라로 전송
             if (serverAnswer == clntMessage) {
-                string gameOver = "2번 클라이언트 정답";;
+                string gameOver = "2번 클라이언트 정답";
                 cout << gameOver << endl;
                 send(ClntSocket1, gameOver.c_str(), strlen(gameOver.c_str()), 0);
                 send(ClntSocket2, gameOver.c_str(), strlen(gameOver.c_str()), 0);
