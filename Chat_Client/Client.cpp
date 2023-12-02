@@ -62,7 +62,7 @@ int main() {
 		clientCheck_msg += clntMessage;
 		send(hSocket, clientCheck_msg.c_str(), clientCheck_msg.size() - 1, 0); // send
 		memset(&clntMessage, 0, sizeof(clntMessage)); // 메세지 배열 초기화
-		clientCheck_msg = "클라이언트1:";
+		clientCheck_msg = "클라이언트1 : ";
 	}
 	clntThread.join();
 
