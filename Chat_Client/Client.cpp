@@ -10,15 +10,27 @@ using namespace std;
 
 
 SOCKET hSocket;
-char buffer[PACKET_SIZE] = {}; //char 생성
+string tag1 = "clntNum1 : ";
+string tag2 = "clntNum2 : ";
+string recv_ServMsg; // 클라 번호 구분자
+char buffer[PACKET_SIZE] = {};
+string message; //받는 string 생성 (buffer을 받을거임)
 
 void thr_recv() {
-	string message; //string 생성
-
 	while (!WSAGetLastError()) {
 		memset(&buffer, 0, sizeof(buffer)); // 버퍼 비우기
 		recv(hSocket, buffer, PACKET_SIZE, 0); // 서버 데이터 받아오기
-		message = buffer; //char형 buffer의값이 string형 message에 들어감
+		message = buffer; // 서버 : ~~
+
+		recv_ServMsg = buffer;
+		if (recv_ServMsg.find(tag1) == 0) { // 서버에게 받은 메세지 중, 번호만 추출
+			recv_ServMsg = recv_ServMsg.substr(tag1.length()); // 리시브 서버메세지에는 번호만 남게됨
+			cout << recv_ServMsg << endl;
+		}
+		else if (recv_ServMsg.find(tag2) == 0) {
+			recv_ServMsg = recv_ServMsg.substr(tag2.length());
+			cout << recv_ServMsg << endl;
+		}
 
 		time_t current_time;
 		struct tm timeinfo; // 구조체
@@ -49,19 +61,21 @@ void makeSocket() {
 			break;
 	}
 }
+void Sending() {
+
+}
 
 int main() {
 	makeSocket();
 	thread clntThread(thr_recv);
-	char clntMessage[PACKET_SIZE] = { 0 }; // 정적할당 char배열 초기화
 
 	string clientCheck_msg = "클라이언트1 : ";
 
 	while (!WSAGetLastError()) {
-		fgets(clntMessage, sizeof(clntMessage), stdin);
-		clientCheck_msg += clntMessage;
+		fgets(buffer, sizeof(buffer), stdin);
+		clientCheck_msg += buffer;
 		send(hSocket, clientCheck_msg.c_str(), clientCheck_msg.size() - 1, 0); // send
-		memset(&clntMessage, 0, sizeof(clntMessage)); // 메세지 배열 초기화
+		memset(&buffer, 0, sizeof(buffer)); // 메세지 배열 초기화
 		clientCheck_msg = "클라이언트1 : ";
 	}
 	clntThread.join();

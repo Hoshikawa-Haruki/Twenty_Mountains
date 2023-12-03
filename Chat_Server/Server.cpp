@@ -16,6 +16,7 @@ map<SOCKET, string> clntInfoMap; // 각 클라이언트의 정보를 소켓과 매핑. 키-값 쌍
 char buffer[PACKET_SIZE] = {};
 char answer[PACKET_SIZE] = {};
 bool isGameOver = false;
+string checkClntnum;
 string serverAnswer;
 string clntMessage;
 string clntInfo;
@@ -119,6 +120,8 @@ void buildServ() {
     int clnt_addrsize = sizeof(clntaddr);
 
     ClntSocket1 = accept(ServSock, (SOCKADDR*)&clntaddr, &clnt_addrsize); // 첫 번째 클라이언트 연결을 수락
+    checkClntnum = "clntNum1 : 1";
+    send(ClntSocket1, checkClntnum.c_str(), strlen(checkClntnum.c_str()), 0);
     string clntInfo1 = "Client_1 (" + string(inet_ntoa(clntaddr.sin_addr)) + ":" + to_string(ntohs(clntaddr.sin_port)) + ")";
     clntInfoMap[ClntSocket1] = clntInfo1; // ip주소와 포트번호를 기반으로한 클라이언트1 식별자를 할당
     if (ClntSocket1 != INVALID_SOCKET) {
@@ -126,6 +129,8 @@ void buildServ() {
     }
 
     ClntSocket2 = accept(ServSock, (SOCKADDR*)&clntaddr, &clnt_addrsize); // 두 번째 클라이언트 연결을 수락
+    checkClntnum = "clntNum2 : 2";
+    send(ClntSocket2, checkClntnum.c_str(), strlen(checkClntnum.c_str()), 0);
     string clntInfo2 = "Client_2 (" + string(inet_ntoa(clntaddr.sin_addr)) + ":" + to_string(ntohs(clntaddr.sin_port)) + ")";
     clntInfoMap[ClntSocket2] = clntInfo2; // ip주소와 포트번호를 기반으로한 클라이언트2 식별자를 할당
     if (ClntSocket2 != INVALID_SOCKET) {
